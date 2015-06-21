@@ -1,0 +1,92 @@
+#!/usr/bin/env python
+
+import numpy as np
+
+class NeuralNetLayer():
+    def __init__(self, is_input=False, is_output=False):
+        self.size = 1
+        self.capacity= 1
+        self.activations = None
+        self.grad = None
+        self.errors = None
+        self.activated = False
+        self.errored = False
+        self.is_input = is_input
+        self.is_output = is_output
+
+    def set_size(self, val):
+        self.size = val
+
+    def set_capacity(self, val):
+        self.capacity= val
+
+    def activation(self, idx=0):
+        assert(idx < self.capacity)
+        start = idx * self.size
+        end = (idx + 1) * self.size
+        return self.activations[start:end]
+
+    def error(self, idx=0):
+        assert(idx < self.capacity)
+        start = idx * self.size
+        end = (idx + 1) * self.size
+        return self.errors[start:end]
+
+    def ResetLayer(self):
+        assert(self.size > 0)
+        assert(self.capacity > 0)
+        self.activations = np.zeros([self.capacity * self.size, 1])
+        self.errors = np.zeros([self.capacity * self.size, 1])
+        self.grad = np.zeros([self.size, 1])
+
+    def Rotate(self):
+        np.roll(self.activations, self.size)
+
+    def ResetActivations(self, idx=0):
+        self.activated = False
+        start = idx * self.size
+        end = (idx + 1) * self.size
+        self.activations[start:end] = 0.0
+
+    def ResetErrors(self, idx=0):
+        self.errored = False
+        start = idx * self.size
+        end = (idx + 1) * self.size
+        self.errors[start:end] = 0.0
+        self.grad[:] = 0.0
+
+    def SigmoidActivation(self, ac_val):
+        self.activated = True
+        ac_val[:] = (np.tanh(0.5 * ac_val) + 1) * 0.5
+        
+
+    def SigmoidGradient(self, err_val, ac_val):
+        assert(self.activated)
+        assert(not self.is_input)
+        self.errored = True
+        self.grad = ac_val * (1.0 - ac_val)
+        err_val *= self.grad
+
+    def TanhActivation(self, ac_val):
+        self.activated = True
+        ac_val[:] = np.tanh(ac_val)
+
+    def TanhGradient(self, err_val, ac_val):
+        assert(self.activated)
+        assert(not self.is_input)
+        self.errored = True
+        self.grad = (1.0 + ac_val) * (1.0 - ac_val)
+        err_val *= self.grad
+
+    def SoftmaxActivation(self, ac_val):
+        self.activated = True
+        ac_val[:] = np.exp(ac_val)
+        ac_val /= np.sum(ac_val)
+
+    def SoftmaxGradient(self, err_val, ac_val, idx):
+        assert(self.activated)
+        assert(not self.is_input)
+        self.errored = True
+        self.grad = -ac_val
+        self.grad[idx] += 1.0
+        err_val[:] = self.grad
