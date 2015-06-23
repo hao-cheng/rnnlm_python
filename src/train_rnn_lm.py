@@ -8,6 +8,11 @@ import numpy as np
 import time
 import neuralnet.recurrent_neuralnet as rnn
 
+## profile helpers
+import cProfile, pstats, StringIO
+#__profile__ = True
+__profile__ = False
+
 def load_vocab(fn):
     vocab = {}
     word_idx = 0
@@ -42,6 +47,7 @@ def eval_lm(model, txt, vocab):
 
     for sent in txt:
         model.ResetLayers()
+
         words = sent.strip().split(' ')
         curr_logp = 0.0
         model.ForwardPropagate(eos_idx)
@@ -60,7 +66,8 @@ def eval_lm(model, txt, vocab):
         total_logp += curr_logp
         sents_processed += 1
         if np.mod(sents_processed, 200) == 0:
-            print '.',
+            #print '.',
+            sys.stdout.flush(' . ')
     
     if ivcount == 0:
         sys.stderr.write('Error: zero IV word!\n')
@@ -72,8 +79,6 @@ def eval_lm(model, txt, vocab):
     print 'model perplexity: {}'.format(np.exp(-total_logp / ivcount))
     
     return total_logp / ivcount
-
-
 
 def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
         valid_txt, outmodel, vocab, tol):
@@ -135,7 +140,8 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
             sents_processed += 1
 
             if np.mod(sents_processed, 500) == 0:
-                print '.',
+                #print '.',
+                sys.stdout.flush(' . ')
         rnn_model.UpdateWeight(learning_rate)
         batch_count = 0
 
@@ -182,6 +188,8 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
         if halve_learning_rate:
             learning_rate *= 0.5
         last_logp = curr_logp
+        if __profile__:
+            return
 
 def train_rnn_lm(args):
     vocab = load_vocab(args.vocabfile)
@@ -206,10 +214,22 @@ def train_rnn_lm(args):
     else:
         rnn_model.ReadModel(args.inmodel)
         rnn_model.AllocateModel()
-    rnn_model.ResetLayers()
+    #rnn_model.ResetLayers()
     print args
-    batch_sgd_train(rnn_model, args.init_alpha, args.batchsize, train_txt, \
-        valid_txt, args.outmodel, vocab, args.tol)
+    if __profile__:
+        pr = cProfile.Profile()
+        pr.enable()
+        batch_sgd_train(rnn_model, args.init_alpha, args.batchsize, train_txt, \
+            valid_txt, args.outmodel, vocab, args.tol)
+        pr.disable()
+        s = StringIO.StringIO()
+        sortby = 'cumulative'
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print s.getvalue()
+    else:
+        batch_sgd_train(rnn_model, args.init_alpha, args.batchsize, train_txt, \
+            valid_txt, args.outmodel, vocab, args.tol)
 
 
 if __name__ == '__main__':

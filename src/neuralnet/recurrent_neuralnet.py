@@ -100,18 +100,26 @@ class RecurrentNeuralNet():
         self.input_layers = layer.NeuralNetLayer(is_input =True)
         self.input_layers.set_size(self.input_size)
         self.input_layers.set_capacity(self.bptt_unfold_level)
+        self.input_layers.AllocateLayers()
         self.hidden_layers = layer.NeuralNetLayer()
         self.hidden_layers.set_size(self.hidden_size)
         self.hidden_layers.set_capacity(self.bptt_unfold_level + 1)
+        self.hidden_layers.AllocateLayers()
         self.output_layer = layer.NeuralNetLayer(is_output=True)
         self.output_layer.set_size(self.output_size)
-        self.ResetLayers()
+        self.output_layer.AllocateLayers()
 
     def ResetLayers(self):
         ## Reset all layers
         self.input_layers.ResetLayer()
         self.hidden_layers.ResetLayer()
         self.output_layer.ResetLayer()
+
+    def ResetLayerActivations(self):
+        ## Reset layer activations
+        self.input_layers.ResetActivations(0)
+        self.hidden_layers.ResetActivations(0)
+        self.output_layer.ResetActivations(0)
 
     def ReadModel(self, fname):
         ## Read model from file
@@ -174,6 +182,7 @@ class RecurrentNeuralNet():
     def ForwardPropagate(self, input_idx):
         self.input_layers.Rotate()
         self.hidden_layers.Rotate()
+        self.ResetLayerActivations()
 
         current_input_layer_activations = self.input_layers.activation(0)
         current_input_layer_activations[input_idx] = 1.0
@@ -295,3 +304,14 @@ class RecurrentNeuralNet():
     def GetMostProbNext(self):
         output_layer_activations = self.output_layer.activation(0)
         return np.argmax(output_layer_activations)
+
+    def GetMostProbUniqNext(self, cur_seq):
+        output_layer_activations = self.output_layer.activation(0)
+        sort_indices = [i[0] for i in \
+                sorted(enumerate(output_layer_activations), \
+                key=lambda x:x[1], \
+                reverse=True)]
+        for idx in sort_indices:
+            if idx not in cur_seq:
+                break
+        return idx

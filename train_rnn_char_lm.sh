@@ -18,8 +18,9 @@ set -e
 trainfile=data/tinyshakespeare/train.txt
 validfile=data/tinyshakespeare/valid.txt
 vocabfile=data/tinyshakespeare/voc.txt
+outmodel=expts/debug.20150620
 nhidden=10
-initalpha=1e-3
+initalpha=1e-1
 batchsize=1
 
 python ./src/train_rnn_lm.py \
@@ -29,5 +30,6 @@ python ./src/train_rnn_lm.py \
   --init-alpha ${initalpha} \
   --batchsize ${batchsize} \
   --nhidden ${nhidden} \
+  --outmodel ${outmodel} \
   --shuffle-sentence
 
