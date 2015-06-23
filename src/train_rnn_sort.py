@@ -65,6 +65,7 @@ def eval_sort(model, txt, vocab):
         sents_processed += 1
         if np.mod(sents_processed, 200) == 0:
             print '.',
+            sys.stdout.flush()
     
     if ivcount == 0:
         sys.stderr.write('Error: zero IV word!\n')
@@ -143,6 +144,7 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
 
             if np.mod(sents_processed, 500) == 0:
                 print '.',
+                sys.stdout.flush()
         rnn_model.UpdateWeight(learning_rate)
         batch_count = 0
 
