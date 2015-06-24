@@ -44,10 +44,12 @@ def eval_sort(model, txt, idx4word, word4idx, outfn):
     sents_processed = 0
     ivcount = 0
     oovcount = 0
+    count = 0
 
     seqs = {}
-    seqs['org'] = []
+    seqs['input'] = []
     seqs['hyp'] = []
+    seqs['truth'] = []
 
     print '*****************************Evaluating***************************'
     for sent in txt:
@@ -56,12 +58,14 @@ def eval_sort(model, txt, idx4word, word4idx, outfn):
         curr_logp = 0.0
         eval_logp = False
         model.ForwardPropagate(eos_idx)
-        org_seq = []
+        input_seq = []
+        true_seq = []
         new_seq = []
         new_indices = set([])
         new_indices.add(eos_idx)
         new_indices.add(unk_idx)
         new_indices.add(idx4word['<sort>'])
+        item_set = len(idx4word) * [False]
         for word in words:
             word_idx = unk_idx
             if word not in idx4word:
@@ -72,22 +76,30 @@ def eval_sort(model, txt, idx4word, word4idx, outfn):
             if eval_logp:
                 curr_logp += model.ComputeLogProb(word_idx)
                 true_idx = word_idx
+                true_seq.append(word)
                 #word_idx = model.GetMostProbNext()
-                word_idx = model.GetMostProbUniqNext(new_indices)
-                acc += 0 if true_idx == word_idx else 1
+                #word_idx = model.GetMostProbUniqNext(new_indices)
+                word_idx = model.GetMostProbUniqNextFromSet(new_indices,\
+                        item_set)
+                if true_idx == word_idx:
+                    acc += 1
                 new_seq.append(word4idx[word_idx])
                 new_indices.add(word_idx)
+                count += 1
             else:
-                org_seq.append(word4idx[word_idx])
-            if word == '<sort>':
-                eval_logp = True
+                if word == '<sort>':
+                    eval_logp = True
+                else:
+                    input_seq.append(word4idx[word_idx])
+                    item_set[word_idx] = True
             model.ForwardPropagate(word_idx)
         #curr_logp += model.ComputeLogProb(eos_idx)
         #ivcount += 1
 
 
-        seqs['org'].append(' '.join(org_seq))
+        seqs['input'].append(' '.join(input_seq))
         seqs['hyp'].append(' '.join(new_seq))
+        seqs['truth'].append(' '.join(true_seq))
 
         total_logp += curr_logp
         sents_processed += 1
@@ -100,16 +112,17 @@ def eval_sort(model, txt, idx4word, word4idx, outfn):
         sys.exit(1)
 
     for i in range(len(seqs['hyp'])):
-        print '{}'.format(i)
-        print 'input seq: {}'.format(seqs['org'][i])
+        print 'Test Example {}'.format(i)
+        print 'input seq: {}'.format(seqs['input'][i])
         print 'hyp seq: {}'.format(seqs['hyp'][i])
+        print 'true seq: {}'.format(seqs['truth'][i])
+        print ''
 
 
-    print ' '
     print 'num of IV words : {}'.format(ivcount)
     print 'num of OOV words: {}'.format(oovcount)
-    print 'Accuracy: {}'.format(acc / ivcount)
-    print 'loglikelihood :{}'.format(total_logp / ivcount)
+    print 'Accuracy: {}%'.format('%.1f' % (acc / count * 100))
+    print 'loglikelihood :{}'.format(total_logp)
 
     
     #return total_logp / ivcount

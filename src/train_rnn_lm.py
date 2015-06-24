@@ -78,7 +78,7 @@ def eval_lm(model, txt, vocab):
     print 'num of OOV words: {}'.format(oovcount)
     print 'model perplexity: {}'.format(np.exp(-total_logp / ivcount))
     
-    return total_logp / ivcount
+    return total_logp
 
 def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
         valid_txt, outmodel, vocab, tol):
@@ -151,7 +151,7 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
 
         print 'model perplexity on training:{}'.format(\
                 np.exp(-logp / ivcount))
-        print 'log-likelihood on training:{}'.format(logp / ivcount)
+        print 'log-likelihood on training:{}'.format(logp)
 
         print 'epoch done!'
 

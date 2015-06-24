@@ -110,6 +110,8 @@ class NeuralNetLayer():
     def SoftmaxActivation(self, ac_val):
         assert(not self.activated)
         self.activated = True
+        # numerical stability
+        ac_val -= np.max(ac_val)
         ac_val[:] = np.exp(ac_val)
         ac_val /= np.sum(ac_val)
 

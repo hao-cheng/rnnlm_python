@@ -24,6 +24,8 @@ vocabfile=vocab
 
 seq_low=0
 seq_high=10
+seq_len=5
+
 
 
 declare -i idx
@@ -37,6 +39,7 @@ do
     --low ${seq_low} \
     --high ${seq_high} \
     --size ${size} \
+    --seq-len ${seq_len} \
     --outfn ${task}
   idx=idx+1
 done

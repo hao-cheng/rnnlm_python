@@ -315,3 +315,15 @@ class RecurrentNeuralNet():
             if idx not in cur_seq:
                 break
         return idx
+
+    def GetMostProbUniqNextFromSet(self, cur_seq, item_set):
+        output_layer_activations = self.output_layer.activation(0)
+        sort_indices = [i[0] for i in \
+                sorted(enumerate(output_layer_activations), \
+                key=lambda x:x[1], \
+                reverse=True)]
+        for idx in sort_indices:
+            if item_set[idx] == True and \
+                idx not in cur_seq:
+                break
+        return idx
