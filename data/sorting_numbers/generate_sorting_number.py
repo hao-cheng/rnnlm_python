@@ -1,14 +1,4 @@
 #!/usr/bin/env python
-# 
-# File Name : generate_sorting_number.py
-#
-# Description :
-#
-# Usage :
-#
-# Creation Date : 22-06-2015
-# Last Modified : Mon 22 Jun 2015 05:20:17 PM PDT
-# Author : Hao Cheng
 
 import os
 import sys

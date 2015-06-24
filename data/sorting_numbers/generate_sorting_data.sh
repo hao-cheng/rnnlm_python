@@ -8,7 +8,6 @@
 #   DESCRIPTION: 
 # 
 #         NOTES: ---
-#        AUTHOR: Hao Cheng, chenghao@uw.edu
 #       CREATED: 06/22/2015 15:32
 #      REVISION:  ---
 #===============================================================================

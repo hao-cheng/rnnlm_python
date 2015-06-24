@@ -5,7 +5,7 @@
 # 
 #         USAGE: ./train_rnn_sort.sh 
 # 
-#   DESCRIPTION: Train a char RNN sorting model
+#   DESCRIPTION: Train a RNN sorting model
 # 
 #         NOTES: ---
 #       CREATED: 06/20/15 19:19
@@ -19,7 +19,7 @@ datadir=data/sorting_numbers
 trainfile=${datadir}/train
 validfile=${datadir}/valid
 vocabfile=${datadir}/vocab
-outmodel=expts/debug.20150620
+outmodel=expts/debug.sort.20150620
 nhidden=50
 initalpha=1e-2
 batchsize=1

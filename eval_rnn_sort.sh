@@ -5,7 +5,7 @@
 # 
 #         USAGE: ./eval_rnn_sort.sh 
 # 
-#   DESCRIPTION: Train a char RNN sorting model
+#   DESCRIPTION: Evaluate a trained RNN sorting model
 # 
 #         NOTES: ---
 #       CREATED: 06/20/15 19:19
@@ -18,7 +18,7 @@ set -e
 datadir=data/sorting_numbers
 infile=${datadir}/test
 vocabfile=${datadir}/vocab
-inmodel=expts/debug.20150620
+inmodel=expts/debug.sort.20150620
 outfn=expts/debug.sort.20150620
 
 python ./src/eval_rnn_sort.py \
