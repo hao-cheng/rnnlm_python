@@ -8,6 +8,8 @@ import cPickle as cp
 
 import neuralnet_layer as layer
 
+DTYPE = np.float32
+
 class RecurrentNeuralNet():
     def __init__(self):
         ## optimization parameters
@@ -79,23 +81,35 @@ class RecurrentNeuralNet():
 
     def InitializeNeuralNet(self):
         ## Randomly initialize the connection weights
-        self.input_hidden_connection = np.random.uniform(-self.init_range, \
+        self.input_hidden_connection += np.random.uniform(-self.init_range, \
                 self.init_range, [self.input_size, self.hidden_size])
-        self.recurrent_hidden_connection = np.random.uniform(-self.init_range, \
+        self.recurrent_hidden_connection += np.random.uniform(-self.init_range, \
                 self.init_range, [self.hidden_size, self.hidden_size])
-        self.hidden_output_connection = np.random.uniform(-self.init_range, \
+        self.hidden_output_connection += np.random.uniform(-self.init_range, \
                 self.init_range, [self.hidden_size, self.output_size])
-
 
     def AllocateModel(self):
         ## Allocate model parameters
-        self.last_input_hidden_connection = np.zeros([self.input_size, self.hidden_size])
-        self.last_recurrent_hidden_connection = np.zeros([self.hidden_size, self.hidden_size])
-        self.last_hidden_output_connection = np.zeros([self.hidden_size, self.output_size])
+        self.input_hidden_connection = np.zeros([self.input_size, self.hidden_size], \
+               dtype=DTYPE)
+        self.recurrent_hidden_connection = np.zeros([self.hidden_size, self.hidden_size], \
+               dtype=DTYPE)
+        self.hidden_output_connection = np.zeros([self.hidden_size, self.output_size], \
+                    dtype=DTYPE)
 
-        self.input_hidden_connection_grad = np.zeros([self.input_size, self.hidden_size])
-        self.recurrent_hidden_connection_grad = np.zeros([self.hidden_size, self.hidden_size])
-        self.hidden_output_connection_grad = np.zeros([self.hidden_size, self.output_size])
+        self.last_input_hidden_connection = np.zeros([self.input_size, self.hidden_size], \
+                    dtype=DTYPE)
+        self.last_recurrent_hidden_connection = np.zeros([self.hidden_size, self.hidden_size], \
+                    dtype=DTYPE)
+        self.last_hidden_output_connection = np.zeros([self.hidden_size, self.output_size], \
+                    dtype=DTYPE)
+
+        self.input_hidden_connection_grad = np.zeros([self.input_size, self.hidden_size], \
+                    dtype=DTYPE)
+        self.recurrent_hidden_connection_grad = np.zeros([self.hidden_size, self.hidden_size], \
+                    dtype=DTYPE)
+        self.hidden_output_connection_grad = np.zeros([self.hidden_size, self.output_size], \
+                    dtype=DTYPE)
 
         self.input_layers = layer.NeuralNetLayer(is_input =True)
         self.input_layers.set_size(self.input_size)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
+DTYPE = np.float32
 
 def compute_range_idx(idx, start_idx, size, capacity):
     cur_idx = start_idx + idx
@@ -45,9 +46,9 @@ class NeuralNetLayer():
     def AllocateLayers(self):
         assert(self.size > 0)
         assert(self.capacity > 0)
-        self.activations = np.zeros([self.capacity * self.size, 1])
-        self.errors = np.zeros([self.capacity * self.size, 1])
-        self.grad = np.zeros([self.size, 1])
+        self.activations = np.zeros([self.capacity * self.size, 1], dtype=DTYPE)
+        self.errors = np.zeros([self.capacity * self.size, 1], dtype=DTYPE)
+        self.grad = np.zeros([self.size, 1], dtype=DTYPE)
 
     def ResetLayer(self):
         self.activations[:] = 0
