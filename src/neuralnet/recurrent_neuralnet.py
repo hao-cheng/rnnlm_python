@@ -219,7 +219,7 @@ class RecurrentNeuralNet():
         # only update the current hidden layer
         self.hidden_layers.SigmoidActivation(current_hidden_layer_activations)
 
-        # curreng hidden layer -> output layer
+        # current hidden layer -> output layer
         output_layer_activations += \
                 np.dot(self.hidden_output_connection.T, \
                         current_hidden_layer_activations)
