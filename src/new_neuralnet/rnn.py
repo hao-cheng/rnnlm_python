@@ -75,7 +75,11 @@ class RNN():
         self.Whx = np.zeros([self.hidden_size, self.input_size], dtype=DTYPE)
         self.Whh = np.zeros([self.hidden_size, self.hidden_size], dtype=DTYPE)
         self.Woh = np.zeros([self.output_size, self.hidden_size], dtype=DTYPE)
-        
+
+        self.last_Whx = np.zeros([self.hidden_size, self.input_size], dtype=DTYPE)
+        self.last_Whh = np.zeros([self.hidden_size, self.hidden_size], dtype=DTYPE)
+        self.last_Woh = np.zeros([self.output_size, self.hidden_size], dtype=DTYPE)
+       
         ## Allocate states
         self.hprev = np.zeros([self.hidden_size, self.batch_size], dtype=DTYPE)
         
@@ -128,11 +132,16 @@ class RNN():
     '''
     Forward propogation
     '''
-    def ForwardPropagate(self, input_idxs, target_idxs):
-        assert len(input_idxs) == self.bptt_unfold_level
+    def ForwardPropagate(self, input_idxs, target_idxs, ivcount=False, \
+            skip_set=[], eval=False):
+        if not eval:
+            assert len(input_idxs) == self.bptt_unfold_level
         loss = 0
         probs = []
-        self.ResetStates()
+        
+        #self.ResetStates() # put this control outside
+        iv_count = 0
+
         for i, (input_idx, target_idx) in enumerate(zip(input_idxs, target_idxs)):
             assert len(input_idx) == self.batch_size
             assert len(target_idx) == 2
@@ -143,9 +152,16 @@ class RNN():
             h = self.rnn_units[i].forward_function(x, self.hprev, self.Whx, self.Whh)
             p = self.softmax_units[i].forward_function(h, self.Woh)
             probs += [p]
-            loss += self.softmax_units[i].compute_loss(target_idx)
+            if ivcount:
+                for ind, word_idx in enumerate(target_idx[0]):
+                    if word_idx not in skip_set:
+                        iv_count += 1
+                        loss += np.log(p[word_idx, ind])
+            else:
+                loss += self.softmax_units[i].compute_loss(target_idx)
             self.hprev = h 
-        return loss, probs     
+        return loss, probs, iv_count     
+
 
     '''
     Backpropogation through time
@@ -160,6 +176,8 @@ class RNN():
             input_idx = input_idxs[i]
             #Retrieve activations
             h = self.rnn_units[i].h
+            # we might want to keep the sequence and reset it globally
+            # hprev = self.rnn_units[i-1].h
             if i > 0:
                 hprev = self.rnn_units[i-1].h
             else:
@@ -179,6 +197,24 @@ class RNN():
             dWoh += l_dWoh
             dWhx += l_dWhx
         return dWhh, dWoh, dWhx
+
+    def UpdateWeight(self, dWhh, dWoh, dWhx):
+        dWhh *= self.learning_rate
+        dWoh *= self.learning_rate
+        dWhx *= self.learning_rate
+        self.Whh += dWhh
+        self.Woh += dWoh
+        self.Whx += dWhx
+        
+    def RestoreModel(self):
+        self.Whh[:] = self.last_Whh
+        self.Woh[:] = self.last_Woh
+        self.Whx[:] = self.last_Whx
+        
+    def CacheModel(self):
+        self.last_Whh[:] = self.Whh
+        self.last_Woh[:] = self.Woh
+        self.last_Whx[:] = self.Whx
 
     def ComputeLogProb(self, input_idx):
         output_layer_activations = self.output_layer.activation(0)

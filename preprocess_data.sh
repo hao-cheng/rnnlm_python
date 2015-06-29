@@ -59,9 +59,9 @@ awk -v lb=${test_lb} \
 # build vocabulary
 sed "s/ /\n/g" ${trainfile} | \
   sort | uniq >> ${vocfile}
-# append eos and unk tokens
+# append eos, unk, append tokens
 echo "</s>" > ${vocfile}
 echo "<unk>" > ${vocfile}
-
+echo "<append>" > ${vocfile}
 
 
