@@ -18,12 +18,13 @@ class SoftmaxUnit():
 
     """Returns the cross entropy with respect to target"""
     def compute_loss(self, target):
-        return np.sum(np.log(self.p[target, range(self.p.shape[1])]))
+        return np.sum(np.log(self.p[target[0], range(self.p.shape[1])]) * target[1])
 
     """Returns dE/dh, and dEdWoh, where E = cross entropy"""
     def backward_function(self, target, h, Woh):
         dEdp = -self.p
-        dEdp[target, range(dEdp.shape[1])] += 1.0
+        dEdp[target[0], range(dEdp.shape[1])] += 1.0
+        dEdp *= target[1]
         dWoh = np.dot(dEdp, h.T)
         dEdh = np.dot(dEdp.T, Woh)
         return dEdh.T, dWoh
@@ -38,7 +39,12 @@ if __name__ == '__main__':
     Woh += np.random.uniform(-0.1, 0.1, Woh.shape)
     h = np.zeros([input_size, batch_size], dtype=DTYPE)
     h += np.random.uniform(-0.1, 0.1, [input_size, batch_size])
-    target = [2] * batch_size
+    target = [None] * 2
+    target[0] = [2] * batch_size
+    target[1] = [1.0] * batch_size
+    target[1][0] = 0.0
+    target[1][2] = 0.0
+    print target
     
     softmax_unit = SoftmaxUnit(output_size, batch_size, DTYPE)
     

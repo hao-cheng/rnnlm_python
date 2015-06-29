@@ -6,7 +6,7 @@ import argparse
 
 import numpy as np
 import time
-import new_neuralnet.rnn
+from new_neuralnet.rnn import RNN
 
 def load_vocab(fn):
     vocab = {}
@@ -112,41 +112,57 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
 
         for sent_idx in sent_indices:
             words = train_txt[sent_idx].split()
-            rnn_model.ResetLayers()
-
-            rnn_model.ForwardPropagate(eos_idx)
-            eval_logp = False
+            words = ['</s>'] + words + ['</s>']
+            #print words
+            words_idx = []
             for word in words:
-                word_idx = unk_idx
                 if word not in vocab:
                     oovcount += 1
+                    words_idx.append(unk_idx)
                 else:
                     ivcount += 1
-                    word_idx = vocab[word]
-                if eval_logp:
-                    logp += rnn_model.ComputeLogProb(word_idx)
-                if word == '<sort>':
-                    eval_logp = True
-                rnn_model.BackPropagate(word_idx)
-                batch_count += 1
-                if (batch_count == batch_size):
-                    rnn_model.UpdateWeight(learning_rate)
-                    batch_count = 0
-                rnn_model.ForwardPropagate(word_idx)
-            ivcount += 1
-            logp += rnn_model.ComputeLogProb(eos_idx)
-            rnn_model.BackPropagate(eos_idx)
-            if (batch_count == batch_size):
-                rnn_model.UpdateWeight(learning_rate)
-                batch_count = 0
+                    words_idx.append(vocab[word])
+            #Form batch
+            input_words = []
+            target_words = []
+            seen_separator = [False] * rnn_model.batch_size
+            for t in range(rnn_model.bptt_unfold_level):
+                input_word = []
+                target_word = []
+                target_weight = [0.0] * rnn_model.batch_size
+                for b in range(rnn_model.batch_size):
+                    assert b < 1 #batch size of 1 for now
+                    if t < len(words) - 1:
+                        input_word.append(words_idx[t])
+                        target_word.append(words_idx[t+1])
+                        if words_idx[t] == vocab['<sort>'] :
+                            seen_separator[b] = True
+                        if seen_separator[b]:
+                            target_weight[b] = 1.0
+                    else:
+                        input_word.append(0)
+                        target_word.append(0)
+                input_words.append(input_word)
+                target_words.append((target_word,target_weight))
+            
+            #print words
+            #print input_words
+            #print target_words
+            
+            E, probs = rnn_model.ForwardPropagate(input_words, target_words)
+            logp += E
+            dWhh, dWoh, dWhx = rnn_model.BackPropagate(input_words, target_words)
+            
+            #Update weights
+            rnn_model.Whh += learning_rate*dWhh
+            rnn_model.Woh += learning_rate*dWoh
+            rnn_model.Whx += learning_rate*dWhx
             
             sents_processed += 1
 
             if np.mod(sents_processed, 500) == 0:
                 print '.',
                 sys.stdout.flush()
-        rnn_model.UpdateWeight(learning_rate)
-        batch_count = 0
 
         print '\n'
         print 'num IV words in training: {}'.format(ivcount)
@@ -164,8 +180,8 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
             curr_logp = logp / ivcount
         else:
             print '-------------Validation--------------'
-            curr_logp = eval_sort(rnn_model, valid_txt, vocab)
-            print 'log-likelihood on validation: {}'.format(curr_logp)
+            #curr_logp = eval_sort(rnn_model, valid_txt, vocab)
+            print 'log-likelihood on validation: {}'.format(E)
             
 
 
@@ -175,19 +191,14 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
                 end_time - last_end_time, end_time - start_time)
 
         obj_diff = curr_logp - last_logp
-        if obj_diff < 0:
-            print 'validation log-likelihood decrease; restore parameters'
-            rnn_model.RestoreModel()
-        else:
-            rnn_model.CacheModel()
 
-        if obj_diff <= tol:
-            if not halve_learning_rate:
-                halve_learning_rate = True
-            else:
-                if outmodel != '':
-                    rnn_model.WriteModel(outmodel)
-                break
+#         if obj_diff <= tol:
+#             if not halve_learning_rate:
+#                 halve_learning_rate = True
+#             else:
+#                 if outmodel != '':
+#                     rnn_model.WriteModel(outmodel)
+#                 break
 
         if halve_learning_rate:
             learning_rate *= 0.5
@@ -202,7 +213,7 @@ def train_rnn_sort(args):
 
     vocab_size = len(vocab)
 
-    rnn_model = rnn.RecurrentNeuralNet()
+    rnn_model = RNN()
     rnn_model.set_init_range(args.init_range)
     rnn_model.set_learning_rate(args.init_alpha)
     rnn_model.set_input_size(vocab_size)
@@ -210,13 +221,13 @@ def train_rnn_sort(args):
     rnn_model.set_output_size(vocab_size)
     rnn_model.set_bptt_unfold_level(args.bptt)
 
+    rnn_model.AllocateModel()
     if args.inmodel == None:
-        rnn_model.AllocateModel()
-        rnn_model.InitializeNeuralNet()
+        rnn_model.InitializeParemters()
     else:
         rnn_model.ReadModel(args.inmodel)
-        rnn_model.AllocateModel()
-    rnn_model.ResetLayers()
+
+    rnn_model.ResetStates()
     print args
     batch_sgd_train(rnn_model, args.init_alpha, args.batchsize, train_txt, \
         valid_txt, args.outmodel, vocab, args.tol)
@@ -241,7 +252,7 @@ if __name__ == '__main__':
             help='input model name')
     pa.add_argument('--nhidden', type=int, default=10, \
             help='hidden layer size, integer > 0')
-    pa.add_argument('--bptt', type=int, default=1, \
+    pa.add_argument('--bptt', type=int, default=12, \
             help='backpropagate through time level, integer >= 1')
     pa.add_argument('--init-alpha', type=float, default=0.1, \
             help='initial learning rate, scalar > 0')

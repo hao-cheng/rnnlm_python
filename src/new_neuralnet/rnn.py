@@ -135,7 +135,9 @@ class RNN():
         self.ResetStates()
         for i, (input_idx, target_idx) in enumerate(zip(input_idxs, target_idxs)):
             assert len(input_idx) == self.batch_size
-            assert len(target_idx) == self.batch_size
+            assert len(target_idx) == 2
+            assert len(target_idx[0]) == self.batch_size
+            assert len(target_idx[1]) == self.batch_size
             x = np.zeros([self.input_size, self.batch_size], dtype=DTYPE)
             x[input_idx, range(self.batch_size)] = 1.0
             h = self.rnn_units[i].forward_function(x, self.hprev, self.Whx, self.Whh)
@@ -227,13 +229,15 @@ if __name__ == '__main__':
     for t in range(rnn.bptt_unfold_level):
         input_idx = []
         target_idx = []
+        target_mult = []
         for b in range(rnn.batch_size):
             input_ind = np.random.randint(0, rnn.input_size)
             input_idx.append(input_ind)
             target_ind = np.random.randint(0, rnn.output_size)
             target_idx.append(target_ind)
+            target_mult.append(1.0)
         input_idxs.append(input_idx)
-        target_idxs.append(target_idx)
+        target_idxs.append((target_idx, target_mult))
     
     print input_idxs
     print target_idxs
