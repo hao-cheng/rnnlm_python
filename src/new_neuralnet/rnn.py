@@ -139,7 +139,7 @@ class RNN():
         loss = 0
         probs = []
         
-        #self.ResetStates() # put this control outside
+        self.ResetStates()
         iv_count = 0
 
         for i, (input_idx, target_idx) in enumerate(zip(input_idxs, target_idxs)):
@@ -176,8 +176,6 @@ class RNN():
             input_idx = input_idxs[i]
             #Retrieve activations
             h = self.rnn_units[i].h
-            # we might want to keep the sequence and reset it globally
-            # hprev = self.rnn_units[i-1].h
             if i > 0:
                 hprev = self.rnn_units[i-1].h
             else:

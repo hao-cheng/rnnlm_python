@@ -22,6 +22,7 @@ outmodel=expts/debug.char-lm.20150620
 nhidden=10
 initalpha=1e-1
 batchsize=100
+bptt=5
 
 python ./src/new_train_rnn_lm.py \
   --trainfile ${trainfile} \
@@ -31,6 +32,7 @@ python ./src/new_train_rnn_lm.py \
   --batchsize ${batchsize} \
   --nhidden ${nhidden} \
   --outmodel ${outmodel} \
+  --bptt ${bptt} \
   --shuffle-sentence \
   --validate
 
