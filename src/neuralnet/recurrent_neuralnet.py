@@ -152,6 +152,8 @@ class RecurrentNeuralNet():
             self.learning_rate = model['learning_rate']
             self.bptt_unfold_level = model['bptt_unfold_level']
 
+            self.AllocateModel()
+
             self.input_hidden_connection = model['input_hidden_connection']
             self.recurrent_hidden_connection = model['recurrent_hidden_connection']
             self.hidden_output_connection = model['hidden_output_connection']

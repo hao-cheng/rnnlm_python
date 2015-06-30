@@ -213,7 +213,6 @@ def train_rnn_lm(args):
         rnn_model.InitializeNeuralNet()
     else:
         rnn_model.ReadModel(args.inmodel)
-        rnn_model.AllocateModel()
     #rnn_model.ResetLayers()
     print args
     if __profile__:
