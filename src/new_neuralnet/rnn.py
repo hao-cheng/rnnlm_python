@@ -138,11 +138,12 @@ class RNN():
     '''
     Forward propogation
     '''
-    def ForwardPropagate(self, input_idxs, target_idxs):
+    def ForwardPropagate(self, input_idxs, target_idxs, eval=False):
         loss = 0
         probs = []
         
-        self.ResetStates()
+        if not eval:
+            self.ResetStates()
         iv_count = 0
 
         for i, (input_idx, target_idx) in enumerate(zip(input_idxs, target_idxs)):

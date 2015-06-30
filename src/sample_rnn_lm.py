@@ -59,7 +59,9 @@ def get_most_prob_sent(word, model, word4idx, idx4word):
     model.set_bptt_unfold_level(1)
     model.ResetStates()
     probs = []
-    for ch in ' '.join(word).split():
+    chs = ' '.join(word).split()
+    chs.append('<sep>')
+    for ch in chs:
         idx = idx4word[ch]
         input_idx = []
         input_idx.append([idx])
@@ -67,6 +69,8 @@ def get_most_prob_sent(word, model, word4idx, idx4word):
         target_idx.append(([sep_idx], [0.0]))
 
         _, probs = model.ForwardPropagate(input_idx, target_idx)
+    
+
     # rule out append
     probs[0][append_idx] = 0
 
@@ -116,7 +120,7 @@ def sample_rnn_lm(args):
             print 'The most probable sentence starting with {} is: \n{}'.format(\
                     first_word, sent)
         
-    else:
+    elif args.spell_word:
         # sample word 
         print 'Spell word from RNN LM'
         while True:
@@ -130,7 +134,7 @@ def sample_rnn_lm(args):
             word = get_most_prob_word(idx4word[first_char], rnn_model, word4idx, idx4word)
             print 'The most probable word starting with {} is: {}'.format(\
                     first_char, word)
-            break
+
 
 if __name__ == '__main__':
     pa = argparse.ArgumentParser(description='Train a RNN language model')
@@ -139,9 +143,14 @@ if __name__ == '__main__':
             help='vocabulary filename (REQUIRED)')
     pa.add_argument('--inmodel', \
             help='inmodel name (REQUIRED)')
+    pa.add_argument('--spell-word', action='store_true',\
+            dest='spell_word', help='sample LM to spell word')
+    pa.set_defaults(spell_word=False)
     pa.add_argument('--sample-sent', action='store_true',\
             dest='sample_sent', help='sample LM to generate sentence')
     pa.set_defaults(sample_sent=False)
+    pa.add_argument('--compute-logp', action='store_true',\
+            dest='compute_logp', help='compute logprob of given word')
     args = pa.parse_args()
 
     if args.vocabfile == None or \
