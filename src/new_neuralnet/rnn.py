@@ -75,10 +75,12 @@ class RNN():
         self.Whx = np.zeros([self.hidden_size, self.input_size], dtype=DTYPE)
         self.Whh = np.zeros([self.hidden_size, self.hidden_size], dtype=DTYPE)
         self.Woh = np.zeros([self.output_size, self.hidden_size], dtype=DTYPE)
+        self.bo = np.zeros([self.output_size, 1], dtype=DTYPE)
 
         self.last_Whx = np.zeros([self.hidden_size, self.input_size], dtype=DTYPE)
         self.last_Whh = np.zeros([self.hidden_size, self.hidden_size], dtype=DTYPE)
         self.last_Woh = np.zeros([self.output_size, self.hidden_size], dtype=DTYPE)
+        self.last_bo = np.zeros([self.output_size, 1], dtype=DTYPE)
        
         ## Allocate states
         self.hprev = np.zeros([self.hidden_size, self.batch_size], dtype=DTYPE)
@@ -114,6 +116,7 @@ class RNN():
             self.Whx = model['Whx']
             self.Whh = model['Whh']
             self.Woh = model['Woh']
+            self.bo = model['bo']
             print '=========Reading Done========\n'
 
     def WriteModel(self, fname):
@@ -129,6 +132,7 @@ class RNN():
         model['Whx'] = self.Whx
         model['Whh'] = self.Whh
         model['Woh'] = self.Woh
+        model['bo'] = self.bo
 
         with open(fname, 'wb') as fout:
             print '=========Writing Model========\n'
@@ -151,7 +155,7 @@ class RNN():
             x = np.zeros([self.input_size, self.batch_size], dtype=DTYPE)
             x[input_idx, range(self.batch_size)] = 1.0
             h = self.rnn_units[i].forward_function(x, self.hprev, self.Whx, self.Whh)
-            p = self.softmax_units[i].forward_function(h, self.Woh)
+            p = self.softmax_units[i].forward_function(h, self.Woh, self.bo)
             probs += [p]
             loss += self.softmax_units[i].compute_loss(target_idx)
             self.hprev = h 
@@ -165,6 +169,7 @@ class RNN():
         dWhh = np.zeros(self.Whh.shape)
         dWoh = np.zeros(self.Woh.shape)
         dWhx = np.zeros(self.Whx.shape)
+        dbo = np.zeros(self.bo.shape)
         dEdh = np.zeros([self.hidden_size, self.batch_size])
         for i in range(self.bptt_unfold_level-1, -1, -1):
             target_idx = target_idxs[i]
@@ -176,7 +181,7 @@ class RNN():
             else:
                 hprev = np.zeros([self.hidden_size, self.batch_size])
             #Backprop the Softmax
-            dEdh_softmax, l_dWoh = self.softmax_units[i].backward_function(target_idx, h, self.Woh)
+            dEdh_softmax, l_dWoh, l_dbo = self.softmax_units[i].backward_function(target_idx, h, self.Woh, self.bo)
             
             #Backprop the RNN
             x = np.zeros([self.input_size, self.batch_size], dtype=DTYPE)
@@ -189,26 +194,31 @@ class RNN():
             dWhh += l_dWhh
             dWoh += l_dWoh
             dWhx += l_dWhx
-        return dWhh, dWoh, dWhx
+            dbo += l_dbo
+        return dWhh, dWoh, dWhx, dbo
 
-    def UpdateWeight(self, dWhh, dWoh, dWhx):
+    def UpdateWeight(self, dWhh, dWoh, dWhx, dbo):
         dWhh *= self.learning_rate
         dWoh *= self.learning_rate
         dWhx *= self.learning_rate
+        dbo *= self.learning_rate
         self.Whh += dWhh
         self.Woh += dWoh
         self.Whx += dWhx
+        self.bo += dbo
         
     def RestoreModel(self):
         self.Whh[:] = self.last_Whh
         self.Woh[:] = self.last_Woh
         self.Whx[:] = self.last_Whx
+        self.bo[:] = self.last_bo
         
     def CacheModel(self):
         self.last_Whh[:] = self.Whh
         self.last_Woh[:] = self.Woh
         self.last_Whx[:] = self.Whx
-
+        self.last_bo[:] = self.bo
+        
     
 if __name__ == '__main__':
     rnn = RNN()
@@ -243,7 +253,7 @@ if __name__ == '__main__':
     # Numerical gradient computation for Woh
     rnn.ResetStates()
     E, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
-    dWhh, dWoh, dWhx = rnn.BackPropagate(input_idxs, target_idxs)
+    dWhh, dWoh, dWhx, dbo = rnn.BackPropagate(input_idxs, target_idxs)
     
     epsilon = 1e-7
     baseWoh = np.copy(rnn.Woh)
@@ -265,7 +275,7 @@ if __name__ == '__main__':
     # Numerical gradient computation for Whh
     rnn.ResetStates()
     E, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
-    dWhh, dWoh, dWhx = rnn.BackPropagate(input_idxs, target_idxs)
+    dWhh, dWoh, dWhx, dbo = rnn.BackPropagate(input_idxs, target_idxs)
     
     epsilon = 1e-7
     baseWhh = np.copy(rnn.Whh)
@@ -287,7 +297,7 @@ if __name__ == '__main__':
     # Numerical gradient computation for Whx
     rnn.ResetStates()
     E, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
-    dWhh, dWoh, dWhx = rnn.BackPropagate(input_idxs, target_idxs)
+    dWhh, dWoh, dWhx, dbo = rnn.BackPropagate(input_idxs, target_idxs)
     
     epsilon = 1e-7
     baseWhx = np.copy(rnn.Whx)
@@ -303,5 +313,26 @@ if __name__ == '__main__':
             numdWhx[i,j] = (newE - E) / epsilon
     
     diff = np.sum(numdWhx - dWhx)
+    assert diff < 1e-3
+    print 'Whx Check Passed! Diff is', diff
+    
+    # Numerical gradient computation for dbo
+    rnn.ResetStates()
+    E, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
+    dWhh, dWoh, dWhx, dbo = rnn.BackPropagate(input_idxs, target_idxs)
+    
+    epsilon = 1e-7
+    basebo = np.copy(rnn.bo)
+    numdbo = np.zeros([rnn.output_size, 1],dtype=DTYPE)
+    for i in range(rnn.output_size):
+        newbo = np.copy(basebo)
+        newbo[i] += epsilon
+        rnn.bo = newbo
+
+        rnn.ResetStates()
+        newE, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
+        numdbo[i] = (newE - E) / epsilon
+    
+    diff = np.sum(numdbo - dbo)
     assert diff < 1e-3
     print 'Whx Check Passed! Diff is', diff

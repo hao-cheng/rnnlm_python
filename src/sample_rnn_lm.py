@@ -60,7 +60,8 @@ def get_most_prob_sent(word, model, word4idx, idx4word):
     model.ResetStates()
     probs = []
     chs = ' '.join(word).split()
-    chs.append('<sep>')
+    chs.insert(0, '</s>')
+    print chs
     for ch in chs:
         idx = idx4word[ch]
         input_idx = []
@@ -69,10 +70,6 @@ def get_most_prob_sent(word, model, word4idx, idx4word):
         target_idx.append(([sep_idx], [0.0]))
 
         _, probs = model.ForwardPropagate(input_idx, target_idx)
-    
-
-    # rule out append
-    probs[0][append_idx] = 0
 
     max_len = 10
     word = []

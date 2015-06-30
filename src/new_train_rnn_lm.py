@@ -182,8 +182,8 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
             rnn_model.ResetStates(inds_reset)
 
             loss, probs = rnn_model.ForwardPropagate(input_idxs, target_idxs)
-            dWhh, dWoh, dWhx = rnn_model.BackPropagate(input_idxs, target_idxs)
-            rnn_model.UpdateWeight(dWhh, dWoh, dWhx)
+            dWhh, dWoh, dWhx, dbo = rnn_model.BackPropagate(input_idxs, target_idxs)
+            rnn_model.UpdateWeight(dWhh, dWoh, dWhx, dbo)
             logp += loss
             ivcount += sum([sum(target_idxs[x][1]) for x in range(len(target_idxs))])
 
@@ -206,7 +206,6 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
             print '-------------Validation--------------'
             curr_logp = eval_lm(rnn_model, batched_valid, vocab)
             print 'log-likelihood on validation: {}'.format(curr_logp)
-            
 
         last_end_time = end_time
         end_time = time.time()
@@ -231,6 +230,9 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
 
         if halve_learning_rate:
             learning_rate *= 0.5
+            halve_learning_rate = False
+            if outmodel != '':
+                rnn_model.WriteModel(outmodel)
         last_logp = curr_logp
         if __profile__:
             return
