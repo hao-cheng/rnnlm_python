@@ -145,11 +145,7 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
                 input_words.append(input_word)
                 target_words.append((target_word,target_weight))
             
-            #print words
-            #print input_words
-            #print target_words
-            
-            E, probs = rnn_model.ForwardPropagate(input_words, target_words)
+            E, probs, _ = rnn_model.ForwardPropagate(input_words, target_words)
             logp += E
             dWhh, dWoh, dWhx = rnn_model.BackPropagate(input_words, target_words)
             

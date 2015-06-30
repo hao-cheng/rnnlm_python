@@ -183,7 +183,6 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
             cur_batch_seq_inputs = batched_data['input_idxs'][batch_idx]
             cur_batch_seq_targets = batched_data['target_idxs'][batch_idx]
             
-            #rnn_model.ResetLayers()
             rnn_model.ResetStates()
 
             for time_idx in range(len(cur_batch_seq_inputs)):
@@ -262,11 +261,10 @@ def train_rnn_lm(args):
     rnn_model.set_bptt_unfold_level(args.bptt)
     rnn_model.set_batch_size(args.batchsize)
 
+    rnn_model.AllocateModel()
     if args.inmodel == None:
-        rnn_model.AllocateModel()
         rnn_model.InitializeParemters()
     else:
-        rnn_model.AllocateModel()
         rnn_model.ReadModel(args.inmodel)
         
     #rnn_model.ResetLayers()

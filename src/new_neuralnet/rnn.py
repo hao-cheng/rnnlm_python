@@ -276,7 +276,7 @@ if __name__ == '__main__':
     print input_idxs
     print target_idxs
     # Numerical gradient computation for Woh
-    E, probs = rnn.ForwardPropagate(input_idxs, target_idxs)
+    E, _, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
     dWhh, dWoh, dWhx = rnn.BackPropagate(input_idxs, target_idxs)
     
     epsilon = 1e-7
@@ -288,7 +288,7 @@ if __name__ == '__main__':
             newWoh[i,j] += epsilon
             rnn.Woh = newWoh
 
-            newE, probs = rnn.ForwardPropagate(input_idxs, target_idxs)
+            newE, _, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
             numdWoh[i,j] = (newE - E) / epsilon
     
     diff = np.sum(numdWoh - dWoh)
@@ -296,7 +296,7 @@ if __name__ == '__main__':
     print 'Woh Check Passed! Diff is', diff
     
     # Numerical gradient computation for Whh
-    E, probs = rnn.ForwardPropagate(input_idxs, target_idxs)
+    E, _, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
     dWhh, dWoh, dWhx = rnn.BackPropagate(input_idxs, target_idxs)
     
     epsilon = 1e-7
@@ -308,7 +308,7 @@ if __name__ == '__main__':
             newWhh[i,j] += epsilon
             rnn.Whh = newWhh
 
-            newE, probs = rnn.ForwardPropagate(input_idxs, target_idxs)
+            newE, _, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
             numdWhh[i,j] = (newE - E) / epsilon
     
     diff = np.sum(numdWhh - dWhh)
@@ -316,7 +316,7 @@ if __name__ == '__main__':
     print 'Whh Check Passed! Diff is', diff
     
     # Numerical gradient computation for Whx
-    E, probs = rnn.ForwardPropagate(input_idxs, target_idxs)
+    E, _, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
     dWhh, dWoh, dWhx = rnn.BackPropagate(input_idxs, target_idxs)
     
     epsilon = 1e-7
@@ -328,7 +328,7 @@ if __name__ == '__main__':
             newWhx[i,j] += epsilon
             rnn.Whx = newWhx
 
-            newE, probs = rnn.ForwardPropagate(input_idxs, target_idxs)
+            newE, _, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
             numdWhx[i,j] = (newE - E) / epsilon
     
     diff = np.sum(numdWhx - dWhx)
