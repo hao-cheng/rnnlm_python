@@ -20,20 +20,21 @@ trainfile=${datadir}/train
 validfile=${datadir}/valid
 vocabfile=${datadir}/vocab
 outmodel=expts/debug.sort.20150620
+separator=\<sort\>
 nhidden=50
 initalpha=1e-2
 batchsize=1
 tol=0.5
 
-python ./src/train_rnn_sort.py \
+python ./src/new_train_rnn_lm.py \
   --trainfile ${trainfile} \
   --validfile ${validfile} \
   --vocabfile ${vocabfile} \
+
   --init-alpha ${initalpha} \
   --batchsize ${batchsize} \
   --nhidden ${nhidden} \
   --outmodel ${outmodel} \
   --tol ${tol} \
-  --shuffle-sentence \
   --validate
 
