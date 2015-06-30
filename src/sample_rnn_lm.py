@@ -54,25 +54,23 @@ def get_most_prob_sent(word, model, word4idx, idx4word):
     append_idx = idx4word['<append>']
     eos_idx = idx4word['</s>']
     sent = []
-    sent.append(word)
     model.set_batch_size(1)
     model.set_bptt_unfold_level(1)
     model.ResetStates()
     probs = []
     chs = ' '.join(word).split()
     chs.insert(0, '</s>')
-    print chs
     for ch in chs:
         idx = idx4word[ch]
         input_idx = []
         input_idx.append([idx])
         target_idx = []
-        target_idx.append(([sep_idx], [0.0]))
+        target_idx.append(([0], [0.0]))
 
         _, probs = model.ForwardPropagate(input_idx, target_idx)
 
+    word = ' '.join(word).split()
     max_len = 10
-    word = []
     while True:
         idx = np.argmax(probs[0])
         if idx == eos_idx or idx == append_idx:
