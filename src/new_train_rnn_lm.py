@@ -35,31 +35,24 @@ def load_txt(fn):
     return txt
 
 def eval_lm(model, batched_data, vocab):
-    #model.CheckParams()
-
-    eos_idx = vocab['</s>']
-    unk_idx = vocab['<unk>']
-    append_idx = vocab['<append>']
-    skip_set = [append_idx, unk_idx]
-
     total_logp = 0.0
     sents_processed = 0
     ivcount = 0
-    oovcount = 0
-    
+    eos_idx = vocab['</s>']
     for batch_idx in range(len(batched_data['input_idxs'])):
-        cur_batch_seq_inputs = batched_data['input_idxs'][batch_idx]
-        cur_batch_seq_targets = batched_data['target_idxs'][batch_idx]
-        model.ResetStates()
+        input_idxs = batched_data['input_idxs'][batch_idx]
+        target_idxs = batched_data['target_idxs'][batch_idx]
 
+        inds_reset = []
+        for i, first_ind in enumerate(input_idxs[0]):
+            if first_ind == eos_idx:
+                inds_reset.append(i)
+        model.ResetStates(inds_reset)
         curr_logp = 0.0
-        for time_idx in range(len(cur_batch_seq_inputs)):
-            input_idxs = cur_batch_seq_inputs[time_idx]
-            target_idxs = cur_batch_seq_targets[time_idx]
 
-            loss, probs, iv_count = model.ForwardPropagate(input_idxs, target_idxs, True, skip_set, True)
-            curr_logp += loss
-            ivcount += iv_count
+        loss, probs = model.ForwardPropagate(input_idxs, target_idxs)
+        curr_logp += loss
+        ivcount += sum([sum(target_idxs[x][1]) for x in range(len(target_idxs))])
 
         sents_processed += model.batch_size
         total_logp += curr_logp
@@ -73,84 +66,86 @@ def eval_lm(model, batched_data, vocab):
     
     return total_logp
 
-def batch_data(txt, vocab, batchsize=1, bptt=1):
+def batch_data(txt, vocab, batch_size=1, bptt=1, separator=""):
     print '************************Data Preparation****************************'
     print 'bptt : {}'.format(bptt)
-    print 'batchsize: {}'.format(batchsize)
-    max_len = -1
+    print 'batch_size: {}'.format(batch_size)
     eos_idx = vocab['</s>']
     unk_idx = vocab['<unk>']
-    append_idx = vocab['<append>']
-    for sent in txt:
-        if max_len < len(sent.split()):
-            max_len = len(sent.split())
+    append_idx = 0
     sent_in_idx = []
-    max_len += 2
     for sent in txt:
         idx_words = []
-        idx_words.append(eos_idx)
-        count = 1
+        if separator:
+            sep_seen = 0.0
+        else:
+            sep_seen = 1.0
+        idx_words.append((eos_idx,sep_seen))
         for word in sent.split():
             if word in vocab:
-                idx_words.append(vocab[word])
+                idx_words.append((vocab[word],sep_seen))
+                if word == separator:
+                    sep_seen = 1.0
             else:
-                idx_words.append(unk_idx)
-            count += 1
-        idx_words.append(eos_idx)
-        count += 1
-        while count < max_len:
-            idx_words.append(append_idx)
-            count += 1
+                assert False
+                idx_words.append((unk_idx,sep_seen))
+        idx_words.append((eos_idx,sep_seen))
         sent_in_idx.append(idx_words)
 
-    time_idx = 0
-    batch_idx = 0
+    # Shuffle examples
+    np.random.shuffle(sent_in_idx)
     batch_data = {}
-    total_sents = len(txt)
     batch_data['input_idxs'] = []
     batch_data['target_idxs'] = []
-    for batch_idx in range(0, total_sents, batchsize):
+    in_flight_sents = [[]] * batch_size
+    done = False
+    while not done:
         cur_inputs = []
         cur_targets = []
-        for time_idx in range(max_len - bptt):
-            input_idxs = []
-            target_idxs = []
-            for t in range(time_idx, time_idx + bptt):
-                input_idx = []
-                target_idx = []
-                target_mult = []
-                for b in range(batch_idx, batch_idx + batchsize):
-                    if b >= total_sents:
-                        input_idx.append(eos_idx)
-                        target_idx.append(eos_idx)
-                        target_mult.append(0.0)
-                    else:
-                        input_idx.append(sent_in_idx[b][t])
-                        target_idx.append(sent_in_idx[b][t + 1])
-                        target_mult.append(1.0)
-                input_idxs.append(input_idx)
-                target_idxs.append((target_idx, target_mult))
-            cur_inputs.append(input_idxs)
-            cur_targets.append(target_idxs)
+        done = True
+        for b in range(batch_size):
+            if len(in_flight_sents[b]) <= 1:
+                if len(sent_in_idx) > 0:
+                    in_flight_sents[b] = sent_in_idx[0]
+                    del sent_in_idx[0]
+                    done = False
+            else:
+                done = False
+        if done:
+            break
+            
+        for t in range(bptt):
+            cur_input = [0] * batch_size
+            cur_target = [0] * batch_size
+            cur_weight = [0.0] * batch_size
+            for b in range(batch_size):
+                sent = in_flight_sents[b]
+                if (len(sent) >= 2):
+                    cur_input[b] = sent[0][0]
+                    cur_target[b] = sent[1][0]
+                    cur_weight[b] = sent[1][1]
+                    in_flight_sents[b] = sent[1:]
+                else:
+                    #Done with this
+                    in_flight_sents[b] = []
+            cur_inputs.append(cur_input)
+            cur_targets.append((cur_target, cur_weight))
+
         batch_data['input_idxs'].append(cur_inputs)
         batch_data['target_idxs'].append(cur_targets)
     print 'Data Preparation Done!'
     return batch_data
 
 def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
-        valid_txt, outmodel, vocab, bptt, shuffle, tol):
-    eos_idx = vocab['</s>']
-    unk_idx = vocab['<unk>']
-    append_idx = vocab['<append>']
-    skip_set = [append_idx, unk_idx]
-    
+        valid_txt, outmodel, vocab, bptt, tol, separator):    
     #train_txt = train_txt[:100]
     #valid_txt = valid_txt[:100]
-    batched_data = batch_data(train_txt, vocab, batch_size, bptt)
+    batched_data = batch_data(train_txt, vocab, batch_size, bptt, separator)
+    eos_idx = vocab['</s>']
     if valid_txt == []:
         batched_valid = None
     else:
-        batched_valid = batch_data(valid_txt, vocab, batch_size)
+        batched_valid = batch_data(valid_txt, vocab, batch_size, bptt, separator)
 
     last_logp = -np.finfo(float).max
     curr_logp = last_logp
@@ -159,9 +154,7 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
     iters = 0
 
     learning_rate = init_learning_rate
-    #sent_indices = np.arange(len(train_txt))
     batch_indices = np.arange(len(batched_data['input_idxs']))
-    #np.random.shuffle(batch_indices)
     halve_learning_rate = False
 
     start_time = time.time()
@@ -176,24 +169,23 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
 
         logp = 0.0
         ivcount = 0;
-        if shuffle:
-            np.random.shuffle(batch_indices)
-        #for sent_idx in sent_indices:
+
         for batch_idx in batch_indices:
-            cur_batch_seq_inputs = batched_data['input_idxs'][batch_idx]
-            cur_batch_seq_targets = batched_data['target_idxs'][batch_idx]
+            input_idxs = batched_data['input_idxs'][batch_idx]
+            target_idxs = batched_data['target_idxs'][batch_idx]
             
-            rnn_model.ResetStates()
+            #We reset the state of those whose first input is eos
+            inds_reset = []
+            for i, first_ind in enumerate(input_idxs[0]):
+                if first_ind == eos_idx:
+                    inds_reset.append(i)
+            rnn_model.ResetStates(inds_reset)
 
-            for time_idx in range(len(cur_batch_seq_inputs)):
-                input_idxs = cur_batch_seq_inputs[time_idx]
-                target_idxs = cur_batch_seq_targets[time_idx]
-
-                loss, probs, iv_count = rnn_model.ForwardPropagate(input_idxs, target_idxs, True, skip_set)
-                logp += loss
-                dWhh, dWoh, dWhx = rnn_model.BackPropagate(input_idxs, target_idxs)
-                rnn_model.UpdateWeight(dWhh, dWoh, dWhx)
-                ivcount += iv_count
+            loss, probs = rnn_model.ForwardPropagate(input_idxs, target_idxs)
+            dWhh, dWoh, dWhx = rnn_model.BackPropagate(input_idxs, target_idxs)
+            rnn_model.UpdateWeight(dWhh, dWoh, dWhx)
+            logp += loss
+            ivcount += sum([sum(target_idxs[x][1]) for x in range(len(target_idxs))])
 
             sents_processed += batch_size
 
@@ -249,7 +241,7 @@ def train_rnn_lm(args):
     valid_txt = []
     if args.valid:
         valid_txt = load_txt(args.validfile)
-
+        
     vocab_size = len(vocab)
 
     rnn_model = rnn.RNN()
@@ -267,7 +259,6 @@ def train_rnn_lm(args):
     else:
         rnn_model.ReadModel(args.inmodel)
         
-    #rnn_model.ResetLayers()
     print args
     if __profile__:
         pr = cProfile.Profile()
@@ -282,7 +273,7 @@ def train_rnn_lm(args):
         print s.getvalue()
     else:
         batch_sgd_train(rnn_model, args.init_alpha, args.batchsize, train_txt, \
-            valid_txt, args.outmodel, vocab, args.bptt, args.shuffle, args.tol)
+            valid_txt, args.outmodel, vocab, args.bptt, args.tol, args.separator)
 
 
 if __name__ == '__main__':
@@ -303,6 +294,8 @@ if __name__ == '__main__':
     pa.set_defaults(valid=False)
     pa.add_argument('--inmodel', \
             help='input model name')
+    pa.add_argument('--separator', \
+            help='separator to use')
     pa.add_argument('--nhidden', type=int, default=10, \
             help='hidden layer size, integer > 0')
     pa.add_argument('--bptt', type=int, default=1, \
@@ -315,10 +308,6 @@ if __name__ == '__main__':
             help='training batch size, integer >= 1')
     pa.add_argument('--tol', type=float, default=1e-3, \
             help='minimum improvement for log-likelihood, scalar > 0')
-    pa.add_argument('--shuffle-sentence', action='store_true', 
-            dest='shuffle', \
-            help='shuffle sentence every epoch')
-    pa.set_defaults(shuffle=False)
     args = pa.parse_args()
 
     if args.trainfile == None or \

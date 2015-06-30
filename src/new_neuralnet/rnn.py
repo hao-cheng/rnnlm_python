@@ -132,10 +132,7 @@ class RNN():
     '''
     Forward propogation
     '''
-    def ForwardPropagate(self, input_idxs, target_idxs, ivcount=False, \
-            skip_set=[], eval=False):
-        if not eval:
-            assert len(input_idxs) == self.bptt_unfold_level
+    def ForwardPropagate(self, input_idxs, target_idxs):
         loss = 0
         probs = []
         
@@ -152,15 +149,9 @@ class RNN():
             h = self.rnn_units[i].forward_function(x, self.hprev, self.Whx, self.Whh)
             p = self.softmax_units[i].forward_function(h, self.Woh)
             probs += [p]
-            if ivcount:
-                for ind, word_idx in enumerate(target_idx[0]):
-                    if word_idx not in skip_set:
-                        iv_count += 1
-                        loss += np.log(p[word_idx, ind])
-            else:
-                loss += self.softmax_units[i].compute_loss(target_idx)
+            loss += self.softmax_units[i].compute_loss(target_idx)
             self.hprev = h 
-        return loss, probs, iv_count     
+        return loss, probs     
 
 
     '''

@@ -120,7 +120,6 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
                     oovcount += 1
                     words_idx.append(unk_idx)
                 else:
-                    ivcount += 1
                     words_idx.append(vocab[word])
             #Form batch
             input_words = []
@@ -138,6 +137,7 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
                         if words_idx[t] == vocab['<sort>'] :
                             seen_separator[b] = True
                         if seen_separator[b]:
+                            ivcount += 1
                             target_weight[b] = 1.0
                     else:
                         input_word.append(0)
@@ -145,7 +145,7 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
                 input_words.append(input_word)
                 target_words.append((target_word,target_weight))
             
-            E, probs, _ = rnn_model.ForwardPropagate(input_words, target_words)
+            E, probs = rnn_model.ForwardPropagate(input_words, target_words)
             logp += E
             dWhh, dWoh, dWhx = rnn_model.BackPropagate(input_words, target_words)
             
