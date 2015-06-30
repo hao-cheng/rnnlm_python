@@ -24,6 +24,7 @@ python src/util/preprocess_data.py \
   --outfile ${outfile} \
   --lowercase \
   --empty-line
+  #--clean-token \
 
 # split data into train, valid and test
 # train 1-2000 lines
@@ -58,10 +59,10 @@ awk -v lb=${test_lb} \
 
 # build vocabulary
 sed "s/ /\n/g" ${trainfile} | \
-  sort | uniq >> ${vocfile}
+  sort | uniq > ${vocfile}
 # append eos, unk, append tokens
-echo "</s>" > ${vocfile}
-echo "<unk>" > ${vocfile}
-echo "<append>" > ${vocfile}
+echo "</s>" >> ${vocfile}
+echo "<unk>" >> ${vocfile}
+echo "<append>" >> ${vocfile}
 
 

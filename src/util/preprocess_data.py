@@ -7,7 +7,9 @@ import argparse
 import re
 
 def clean_token(word):
-    word = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", word)
+    #word = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", word)
+    word = re.sub(r":", ": ", word)
+    word = re.sub(r"\.", ". ", word)
     return word
 
 def preprocess_data(args):
@@ -18,7 +20,7 @@ def preprocess_data(args):
             if line.strip() == '':
                 if args.empty_line:
                     fout.write('{}\n'.format(\
-                            ' '.join(new_line)))
+                            ' <sep> '.join(new_line)))
                     new_line = []
                 continue
             words = line.strip().split()
@@ -30,7 +32,7 @@ def preprocess_data(args):
                 new_line.append(' '.join(word))
             if not args.empty_line:
                 fout.write('{}\n'.format(\
-                        ' '.join(new_line)))
+                        ' <sep> '.join(new_line)))
 
 if __name__ == '__main__':
     pa = argparse.ArgumentParser(

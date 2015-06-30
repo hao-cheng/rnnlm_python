@@ -88,7 +88,7 @@ class RNN():
             self.rnn_units.append(RNNUnit(self.hidden_size, self.batch_size, DTYPE))
             self.softmax_units.append(SoftmaxUnit(self.output_size, self.batch_size, DTYPE))
 
-    def ReadModel(self, fname):
+    def ReadModel(self, fname, eval=True):
         ## Read model from file
         if not os.path.exists(fname):
             sys.stderr.write(\
@@ -103,7 +103,13 @@ class RNN():
             self.hidden_size = model['hidden_size']
             self.output_size = model['output_size']
             self.learning_rate = model['learning_rate']
-            self.bptt_unfold_level = model['bptt_unfold_level']
+            if eval:
+                self.bptt_unfold_level = 1
+                self.batch_size = 1
+            else:
+                self.bptt_unfold_level = model['bptt_unfold_level']
+
+            self.AllocateModel()
 
             self.Whx = model['Whx']
             self.Whh = model['Whh']
