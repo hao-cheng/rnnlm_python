@@ -142,10 +142,7 @@ class RNN():
         loss = 0
         probs = []
         
-        if not eval:
-            self.ResetStates()
         iv_count = 0
-
         for i, (input_idx, target_idx) in enumerate(zip(input_idxs, target_idxs)):
             assert len(input_idx) == self.batch_size
             assert len(target_idx) == 2
@@ -212,36 +209,6 @@ class RNN():
         self.last_Woh[:] = self.Woh
         self.last_Whx[:] = self.Whx
 
-    def ComputeLogProb(self, input_idx):
-        output_layer_activations = self.output_layer.activation(0)
-        return np.log(output_layer_activations[input_idx, 0])
-
-    def GetMostProbNext(self):
-        output_layer_activations = self.output_layer.activation(0)
-        return np.argmax(output_layer_activations)
-
-    def GetMostProbUniqNext(self, cur_seq):
-        output_layer_activations = self.output_layer.activation(0)
-        sort_indices = [i[0] for i in \
-                sorted(enumerate(output_layer_activations), \
-                key=lambda x:x[1], \
-                reverse=True)]
-        for idx in sort_indices:
-            if idx not in cur_seq:
-                break
-        return idx
-
-    def GetMostProbUniqNextFromSet(self, cur_seq, item_set):
-        output_layer_activations = self.output_layer.activation(0)
-        sort_indices = [i[0] for i in \
-                sorted(enumerate(output_layer_activations), \
-                key=lambda x:x[1], \
-                reverse=True)]
-        for idx in sort_indices:
-            if item_set[idx] == True and \
-                idx not in cur_seq:
-                break
-        return idx
     
 if __name__ == '__main__':
     rnn = RNN()
@@ -274,7 +241,8 @@ if __name__ == '__main__':
     print input_idxs
     print target_idxs
     # Numerical gradient computation for Woh
-    E, _, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
+    rnn.ResetStates()
+    E, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
     dWhh, dWoh, dWhx = rnn.BackPropagate(input_idxs, target_idxs)
     
     epsilon = 1e-7
@@ -286,7 +254,8 @@ if __name__ == '__main__':
             newWoh[i,j] += epsilon
             rnn.Woh = newWoh
 
-            newE, _, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
+            rnn.ResetStates()
+            newE, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
             numdWoh[i,j] = (newE - E) / epsilon
     
     diff = np.sum(numdWoh - dWoh)
@@ -294,7 +263,8 @@ if __name__ == '__main__':
     print 'Woh Check Passed! Diff is', diff
     
     # Numerical gradient computation for Whh
-    E, _, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
+    rnn.ResetStates()
+    E, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
     dWhh, dWoh, dWhx = rnn.BackPropagate(input_idxs, target_idxs)
     
     epsilon = 1e-7
@@ -306,7 +276,8 @@ if __name__ == '__main__':
             newWhh[i,j] += epsilon
             rnn.Whh = newWhh
 
-            newE, _, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
+            rnn.ResetStates()
+            newE, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
             numdWhh[i,j] = (newE - E) / epsilon
     
     diff = np.sum(numdWhh - dWhh)
@@ -314,7 +285,8 @@ if __name__ == '__main__':
     print 'Whh Check Passed! Diff is', diff
     
     # Numerical gradient computation for Whx
-    E, _, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
+    rnn.ResetStates()
+    E, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
     dWhh, dWoh, dWhx = rnn.BackPropagate(input_idxs, target_idxs)
     
     epsilon = 1e-7
@@ -326,7 +298,8 @@ if __name__ == '__main__':
             newWhx[i,j] += epsilon
             rnn.Whx = newWhx
 
-            newE, _, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
+            rnn.ResetStates()
+            newE, _ = rnn.ForwardPropagate(input_idxs, target_idxs)
             numdWhx[i,j] = (newE - E) / epsilon
     
     diff = np.sum(numdWhx - dWhx)
