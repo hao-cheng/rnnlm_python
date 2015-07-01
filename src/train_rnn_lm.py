@@ -8,11 +8,6 @@ import numpy as np
 import time
 import neuralnet.rnn as rnn
 
-## profile helpers
-import cProfile, pstats, StringIO
-#__profile__ = True
-__profile__ = False
-
 def load_vocab(fn):
     vocab = {}
     word_idx = 0
@@ -234,8 +229,6 @@ def batch_sgd_train(rnn_model, init_learning_rate, batch_size, train_txt, \
             if outmodel != '':
                 rnn_model.WriteModel(outmodel)
         last_logp = curr_logp
-        if __profile__:
-            return
 
 def train_rnn_lm(args):
     vocab = load_vocab(args.vocabfile)
@@ -262,20 +255,8 @@ def train_rnn_lm(args):
         rnn_model.ReadModel(args.inmodel)
         
     print args
-    if __profile__:
-        pr = cProfile.Profile()
-        pr.enable()
-        batch_sgd_train(rnn_model, args.init_alpha, args.batchsize, train_txt, \
-            valid_txt, args.outmodel, vocab, args.tol)
-        pr.disable()
-        s = StringIO.StringIO()
-        sortby = 'cumulative'
-        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-        ps.print_stats()
-        print s.getvalue()
-    else:
-        batch_sgd_train(rnn_model, args.init_alpha, args.batchsize, train_txt, \
-            valid_txt, args.outmodel, vocab, args.bptt, args.tol, args.separator)
+    batch_sgd_train(rnn_model, args.init_alpha, args.batchsize, train_txt, \
+        valid_txt, args.outmodel, vocab, args.bptt, args.tol, args.separator)
 
 
 if __name__ == '__main__':
