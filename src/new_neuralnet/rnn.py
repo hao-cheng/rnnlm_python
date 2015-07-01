@@ -60,7 +60,7 @@ class RNN():
     Model utility functions
     '''
     def InitializeParemters(self):
-        ## Randomly initialize the connection weights
+        ## Randomly initialize the connection weights (bias stays at 0)
         self.Whx += np.random.uniform(-self.init_range, self.init_range, self.Whx.shape)
         self.Whh += np.random.uniform(-self.init_range, self.init_range, self.Whh.shape)
         self.Woh += np.random.uniform(-self.init_range, self.init_range, self.Woh.shape)
@@ -219,7 +219,8 @@ class RNN():
         self.last_Whx[:] = self.Whx
         self.last_bo[:] = self.bo
         
-    
+
+#Tests for the gradient computation of the whole RNN
 if __name__ == '__main__':
     rnn = RNN()
     rnn.set_batch_size(3)
@@ -335,4 +336,4 @@ if __name__ == '__main__':
     
     diff = np.sum(numdbo - dbo)
     assert diff < 1e-3
-    print 'Whx Check Passed! Diff is', diff
+    print 'bo Check Passed! Diff is', diff

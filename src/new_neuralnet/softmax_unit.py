@@ -20,7 +20,7 @@ class SoftmaxUnit():
     def compute_loss(self, target):
         return np.sum(np.log(self.p[target[0], range(self.p.shape[1])]) * target[1])
 
-    """Returns dE/dh, and dEdWoh, where E = cross entropy"""
+    """Returns dEdh, dEdWoh, and dEdbo where E = cross entropy"""
     def backward_function(self, target, h, Woh, bo):
         dEdp = -self.p
         dEdp[target[0], range(dEdp.shape[1])] += 1.0
@@ -31,7 +31,7 @@ class SoftmaxUnit():
         return dEdh.T, dWoh, dbo
 
 
-#Tests for the gradient computation of the single RNNUnit
+#Tests for the gradient computation of the single SoftmaxUnit
 if __name__ == '__main__':
     output_size = 10
     input_size = 5

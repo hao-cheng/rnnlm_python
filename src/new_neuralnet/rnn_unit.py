@@ -17,7 +17,7 @@ class RNNUnit():
         self.h = sigmoid(self.h)
         return self.h
 
-    """Returns dE/dhprev, dEdWhx, and dEdWhh"""
+    """Returns dEdhprev, dEdWhx, and dEdWhh"""
     def backward_function(self, x, hprev, dEdh, Whx, Whh):
         dEdh = dEdh * (1 - self.h) * self.h
         dEdhprev = np.dot(dEdh.T, Whh)
@@ -62,6 +62,22 @@ if __name__ == '__main__':
             numdWhh[i,j] = (newE - E) / epsilon
     
     diff = np.sum(numdWhh - dWhh)
+    assert diff < 1e-3
+    print 'Check Passed! Diff is', diff
+    
+    # Numerical gradient computation
+    epsilon = 1e-7
+    numdWhx = np.zeros([hidden_size,input_size],dtype=DTYPE)
+    for i in range(hidden_size):
+        for j in range(input_size):
+            newWhx = np.copy(Whx)
+            newWhx[i,j] += epsilon
+            
+            h = rnn_unit.forward_function(x, hprev, newWhx, Whh)
+            newE = np.sum(h)
+            numdWhx[i,j] = (newE - E) / epsilon
+    
+    diff = np.sum(numdWhx - dWhx)
     assert diff < 1e-3
     print 'Check Passed! Diff is', diff
     exit(0)
