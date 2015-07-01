@@ -13,17 +13,13 @@ class RNNUnit():
 
     """Returns h = sigmoid(Whx*x + Whh*h)"""
     def forward_function(self, x, hprev, Whx, Whh):
-        self.h = np.dot(Whx, x) + np.dot(Whh, hprev)
-        self.h = sigmoid(self.h)
-        return self.h
+        """YOUR CODE GOES HERE"""
+        return None
 
     """Returns dEdhprev, dEdWhx, and dEdWhh"""
     def backward_function(self, x, hprev, dEdh, Whx, Whh):
-        dEdh = dEdh * (1 - self.h) * self.h
-        dEdhprev = np.dot(dEdh.T, Whh)
-        dWhh = np.dot(dEdh, hprev.T)
-        dWhx = np.dot(dEdh, x.T)
-        return dEdhprev.T, dWhx, dWhh
+        """YOUR CODE GOES HERE"""
+        return None
 
 
 #Tests for the gradient computation of the single RNNUnit
