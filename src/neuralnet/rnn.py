@@ -154,8 +154,10 @@ class RNN():
             assert len(target_idx[1]) == self.batch_size
             x = np.zeros([self.input_size, self.batch_size], dtype=DTYPE)
             x[input_idx, range(self.batch_size)] = 1.0
-            h = self.rnn_units[i].forward_function(x, self.hprev, self.Whx, self.Whh)
-            p = self.softmax_units[i].forward_function(h, self.Woh, self.bo)
+            """YOUR CODE GOES HERE"""
+            #h = f(h[i-1], x)
+            #p = softmax(h, ...)
+            """DONE"""
             probs += [p]
             loss += self.softmax_units[i].compute_loss(target_idx)
             self.hprev = h 
@@ -181,13 +183,16 @@ class RNN():
             else:
                 hprev = np.zeros([self.hidden_size, self.batch_size])
             #Backprop the Softmax
-            dEdh_softmax, l_dWoh, l_dbo = self.softmax_units[i].backward_function(target_idx, h, self.Woh, self.bo)
+            """YOUR CODE GOES HERE"""
+            #dEdh_softmax, l_dWoh, l_dbo = ...
+            """DONE"""
             
             #Backprop the RNN
             x = np.zeros([self.input_size, self.batch_size], dtype=DTYPE)
             x[input_idx, range(self.batch_size)] = 1.0
-            dEdhprev, l_dWhx, l_dWhh = self.rnn_units[i].backward_function(x, hprev, dEdh + dEdh_softmax, 
-                                                              self.Whx, self.Whh)
+            """YOUR CODE GOES HERE"""
+            #dEdhprev, l_dWhx, l_dWhh = ...
+            """DONE"""
             
             #Update the gradient accumulators
             dEdh = dEdhprev
