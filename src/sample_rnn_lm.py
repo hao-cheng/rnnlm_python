@@ -37,7 +37,6 @@ def random_distr(p):
 
 def get_most_prob_word(ch_idx, model, word4idx, idx4word):
     sep_idx = idx4word['<sep>']
-    append_idx = idx4word['<append>']
     eos_idx = idx4word['</s>']
     word = []
     word.append(word4idx[ch_idx])
@@ -61,7 +60,6 @@ def get_most_prob_word(ch_idx, model, word4idx, idx4word):
 
 def sample_sent(word, model, word4idx, idx4word):
     sep_idx = idx4word['<sep>']
-    append_idx = idx4word['<append>']
     eos_idx = idx4word['</s>']
     sent = []
     #target_idx not used, set it to a constant
@@ -79,7 +77,7 @@ def sample_sent(word, model, word4idx, idx4word):
     max_len = 10
     while True:
         idx = random_distr(probs[0])
-        if idx == eos_idx or idx == append_idx:
+        if idx == eos_idx:
             sent.append(''.join(word))
             break
         if idx == sep_idx:
@@ -91,13 +89,8 @@ def sample_sent(word, model, word4idx, idx4word):
                 len(word) >= max_len:
             break
 
-        input_idx = []
-        input_idx.append([idx])
-        target_idx = []
-        target_idx.append(([sep_idx], [0.0]))
+        input_idx = [[idx]]
         _, probs = model.ForwardPropagate(input_idx, target_idx)
-        # rule out append
-        probs[0][append_idx] = 0
 
     return ' '.join(sent)
 
