@@ -6,7 +6,7 @@ import argparse
 
 import numpy as np
 import time
-import new_neuralnet.rnn as rnn
+import neuralnet.rnn as rnn
 
 def build_idx_word(fn):
     word4idx = {}

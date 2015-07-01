@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #===============================================================================
 #
-#          FILE: train_rnn_char_lm.sh
+#          FILE: train_rnn_sort.sh
 # 
-#         USAGE: ./new_train_rnn_char_lm.sh 
+#         USAGE: ./train_rnn_sort.sh 
 # 
-#   DESCRIPTION: Train a char RNN language model using batch mode
+#   DESCRIPTION: Train a RNN sorting model
 # 
 #         NOTES: ---
 #       CREATED: 06/20/15 19:19
@@ -15,25 +15,28 @@
 set -o nounset                              # Treat unset variables as an error
 set -e
 
-trainfile=data/tinyshakespeare/train.txt
-validfile=data/tinyshakespeare/valid.txt
-vocabfile=data/tinyshakespeare/voc.txt
-outmodel=expts/debug.char-lm.20150620
+datadir=data/sorting_numbers
+trainfile=${datadir}/train
+validfile=${datadir}/valid
+vocabfile=${datadir}/vocab
+outmodel=expts/debug.sort.20150620
+separator=\<sort\>
 nhidden=100
-initalpha=0.01
-initrange=0.05
-batchsize=20
-bptt=10
+initalpha=1e-2
+batchsize=1
+tol=0.5
+bptt=12
 
-python ./src/new_train_rnn_lm.py \
+python ./src/train_rnn_lm.py \
   --trainfile ${trainfile} \
   --validfile ${validfile} \
   --vocabfile ${vocabfile} \
+  --separator ${separator} \
   --init-alpha ${initalpha} \
-  --init-range ${initrange} \
   --batchsize ${batchsize} \
   --nhidden ${nhidden} \
   --outmodel ${outmodel} \
+  --tol ${tol} \
   --bptt ${bptt} \
   --validate
 
