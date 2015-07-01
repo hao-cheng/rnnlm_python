@@ -23,5 +23,5 @@ inmodel=expts/debug.char-lm.20150620
 python ./src/sample_rnn_lm.py \
   --inmodel ${inmodel} \
   --vocabfile ${vocabfile} \
-  --spell-word
-  #--sample-sent
+  --spell-word \
+  --sample-sent
