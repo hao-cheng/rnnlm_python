@@ -8,6 +8,8 @@ import numpy as np
 import time
 import neuralnet.rnn as rnn
 
+import random
+
 def build_idx_word(fn):
     word4idx = {}
     idx4word ={}
@@ -22,25 +24,33 @@ def build_idx_word(fn):
         sys.stderr.write('Error: Vocab does not contain </s>.\n')
     if '<unk>' not in idx4word:
         sys.stderr.write('Error: Vocab does not contain <unk>.\n')
-    return idx4word, word4idx 
+    return idx4word, word4idx
+
+def random_distr(p):
+    r = random.uniform(0, 1)
+    s = 0
+    for item, prob in enumerate(p):
+        s += prob
+        if s >= r:
+            return item
+    return len(prob)-1  # Might occur because of floating point inaccuracies
 
 def get_most_prob_word(ch_idx, model, word4idx, idx4word):
     sep_idx = idx4word['<sep>']
     append_idx = idx4word['<append>']
+    eos_idx = idx4word['</s>']
     word = []
     word.append(word4idx[ch_idx])
-    model.set_batch_size(1)
-    model.set_bptt_unfold_level(1)
+    #target_idx not used, set it to a constant
+    target_idx = [([0], [0.0])]
     model.ResetStates()
+    #Forward propagate the </s>
+    _, _ = model.ForwardPropagate([[eos_idx]], target_idx)
     cur_ch_idx = ch_idx
     while True:
-        input_idx = []
-        input_idx.append([cur_ch_idx])
-        target_idx = []
-        target_idx.append(([sep_idx], [0.0]))
+        input_idx = [[cur_ch_idx]]
+
         _, probs = model.ForwardPropagate(input_idx, target_idx)
-        # rule out append
-        probs[0][append_idx] = 0
         idx = np.argmax(probs[0])
         if idx == sep_idx:
             break
@@ -49,30 +59,26 @@ def get_most_prob_word(ch_idx, model, word4idx, idx4word):
 
     return ''.join(word)
 
-def get_most_prob_sent(word, model, word4idx, idx4word):
+def sample_sent(word, model, word4idx, idx4word):
     sep_idx = idx4word['<sep>']
     append_idx = idx4word['<append>']
     eos_idx = idx4word['</s>']
     sent = []
-    model.set_batch_size(1)
-    model.set_bptt_unfold_level(1)
+    #target_idx not used, set it to a constant
+    target_idx = [([0], [0.0])]
     model.ResetStates()
-    probs = []
     chs = ' '.join(word).split()
     chs.insert(0, '</s>')
     for ch in chs:
         idx = idx4word[ch]
-        input_idx = []
-        input_idx.append([idx])
-        target_idx = []
-        target_idx.append(([0], [0.0]))
+        input_idx = [[idx]]
 
         _, probs = model.ForwardPropagate(input_idx, target_idx)
 
     word = ' '.join(word).split()
     max_len = 10
     while True:
-        idx = np.argmax(probs[0])
+        idx = random_distr(probs[0])
         if idx == eos_idx or idx == append_idx:
             sent.append(''.join(word))
             break
@@ -98,7 +104,6 @@ def get_most_prob_sent(word, model, word4idx, idx4word):
 
 def sample_rnn_lm(args):
     idx4word, word4idx = build_idx_word(args.vocabfile)
-    sep_idx = idx4word['<sep>']
 
     rnn_model = rnn.RNN()
     rnn_model.ReadModel(args.inmodel)
@@ -106,13 +111,13 @@ def sample_rnn_lm(args):
     print 'Play with RNN Language Model on Tiny Shakespeare, To exit enter 0'
     if args.sample_sent:
         # sample sent
-        print 'Generate sentence from RNN LM'
+        print 'Randomly sample sentence from RNN LM'
         while True:
-            first_word = raw_input('Enter the word (lowercased) to start with: ')
+            first_word = raw_input('Enter the (partial) word (lowercased) to start with: ')
             if first_word == '0':
                 break
-            sent = get_most_prob_sent(first_word, rnn_model, word4idx, idx4word)
-            print 'The most probable sentence starting with {} is: \n{}'.format(\
+            sent = sample_sent(first_word, rnn_model, word4idx, idx4word)
+            print 'The sampled sentence starting with {} is: \n{}'.format(\
                     first_word, sent)
         
     elif args.spell_word:
@@ -144,8 +149,6 @@ if __name__ == '__main__':
     pa.add_argument('--sample-sent', action='store_true',\
             dest='sample_sent', help='sample LM to generate sentence')
     pa.set_defaults(sample_sent=False)
-    pa.add_argument('--compute-logp', action='store_true',\
-            dest='compute_logp', help='compute logprob of given word')
     args = pa.parse_args()
 
     if args.vocabfile == None or \
